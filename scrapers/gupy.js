@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 // Gupy expõe uma API pública centralizada que agrega vagas de todos os
 // portais de empresas com domínio próprio (ex.: empresa.gupy.io).
@@ -46,7 +45,6 @@ async function scrape(keywords, location) {
         // Ignora vagas que não estão abertas para candidatura
         if (job.isPublished === false) continue;
         if (job.status && job.status !== "published") continue;
-        if (!isWithinSixMonths(job.publishedDate)) continue;
         seen.add(job.id);
 
         // jobUrl já vem como URL completa tipo https://empresa.gupy.io/jobs/123

@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 // Indeed blocks all bot traffic (Cloudflare). Replaced with Remotive —
 // free public API, no key required: https://remotive.com/api/remote-jobs
@@ -47,7 +46,6 @@ async function scrape(keywords, _location) {
       const titleLower = job.title.toLowerCase();
       if (!translated.some((k) => titleLower.includes(k.toLowerCase())))
         continue;
-      if (!isWithinSixMonths(job.publication_date)) continue;
       jobs.push({
         id: `remotive_${job.id}`,
         title: job.title,

@@ -1,6 +1,5 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 const HEADERS = {
   "User-Agent":
@@ -13,7 +12,7 @@ const HEADERS = {
 async function scrape(keywords, location) {
   const jobs = [];
   const keyword = keywords.join(" ");
-  const url = `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&f_TPR=r3600&start=0`;
+  const url = `https://www.linkedin.com/jobs/search?keywords=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&start=0`;
 
   try {
     const { data } = await axios.get(url, { headers: HEADERS, timeout: 15000 });
@@ -27,7 +26,6 @@ async function scrape(keywords, location) {
       const postedAt = $(el).find("time").attr("datetime") || "Recentemente";
 
       if (!title || !link) return;
-      if (!isWithinSixMonths(postedAt)) return;
 
       const id = `linkedin_${link.split("?")[0].split("/").pop()}`;
       jobs.push({

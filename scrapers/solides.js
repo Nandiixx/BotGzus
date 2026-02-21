@@ -1,6 +1,5 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 // Sólides Vagas — portal brasileiro com SSR, sem autenticação necessária.
 // URL de busca: https://vagas.solides.com.br/vagas/todos/{keyword}
@@ -118,8 +117,6 @@ async function scrape(keywords, location) {
         const dateMatch = cardText.match(/Postada\s+(.+?)(?:\n|\s{2,}|$)/i);
         const rawDate = dateMatch ? dateMatch[1].trim() : null;
         const parsedDate = parseRelativeDate(rawDate);
-
-        if (!isWithinSixMonths(parsedDate)) return;
 
         seen.add(jobId);
         jobs.push({

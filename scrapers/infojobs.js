@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 // InfoJobs BR blocks all bot traffic. Replaced with Jobicy —
 // free public API, no key required: https://jobicy.com/api/v2/remote-jobs
@@ -50,7 +49,6 @@ async function scrape(keywords, _location) {
       for (const job of data?.jobs || []) {
         if (!job.jobTitle || !job.url || seen.has(job.id)) continue;
         seen.add(job.id);
-        if (!isWithinSixMonths(job.pubDate)) continue;
         jobs.push({
           id: `jobicy_${job.id}`,
           title: job.jobTitle,

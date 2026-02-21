@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { isWithinSixMonths } = require("../utils/dateFilter");
 
 // Glassdoor blocks all bot traffic (Cloudflare). Replaced with Arbeitnow —
 // free public JSON API, no key required: https://www.arbeitnow.com/api/job-board-api
@@ -49,12 +48,6 @@ async function scrape(keywords, _location) {
       // post-filter: title must contain at least one translated keyword
       const titleLower = job.title.toLowerCase();
       if (!translated.some((k) => titleLower.includes(k.toLowerCase())))
-        continue;
-      if (
-        !isWithinSixMonths(
-          job.created_at != null ? job.created_at * 1000 : null,
-        )
-      )
         continue;
       jobs.push({
         id: `arbeitnow_${job.slug}`,

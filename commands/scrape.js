@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { getGuild, isJobPosted, markJobPosted } = require("../utils/db");
 const { scrapeAll } = require("../scrapers");
-const { postJob } = require("../utils/poster");
+const { postJobsPaginated } = require("../utils/poster");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -42,19 +42,22 @@ module.exports = {
 
     const jobs = await scrapeAll(keywords, location);
 
-    let posted = 0;
+    const newJobs = [];
     for (const job of jobs) {
       if (!job.id || isJobPosted(job.id)) continue;
+      newJobs.push(job);
+    }
+
+    if (newJobs.length > 0) {
       try {
-        await postJob(channel, job);
-        markJobPosted(job.id);
-        posted++;
-        await new Promise((r) => setTimeout(r, 500));
+        await postJobsPaginated(channel, newJobs);
+        for (const job of newJobs) markJobPosted(job.id);
       } catch (err) {
-        console.error(`[/scrape] Erro ao postar vaga ${job.id}:`, err.message);
+        console.error(`[/scrape] Erro ao postar vagas:`, err.message);
       }
     }
 
+    const posted = newJobs.length;
     await interaction.editReply({
       content: `✅ Busca concluída!\n**Total encontrado:** ${jobs.length}\n**Novas vagas postadas:** ${posted}\n**Já postadas anteriormente:** ${jobs.length - posted}`,
     });
