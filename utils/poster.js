@@ -1,4 +1,9 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
 
 const SITE_COLORS = {
   LinkedIn: 0x0077b5,
@@ -21,12 +26,14 @@ const SITE_ICONS = {
 };
 
 /**
- * Sends a job embed to the given channel.
- * @param {import("discord.js").TextChannel} channel
+ * Builds an embed for a single job within a paginated list.
  * @param {Object} job
+ * @param {number} page - 0-based index
+ * @param {number} total - total number of jobs
+ * @returns {EmbedBuilder}
  */
-async function postJob(channel, job) {
-  const embed = new EmbedBuilder()
+function buildJobEmbed(job, page, total) {
+  return new EmbedBuilder()
     .setColor(SITE_COLORS[job.site] || 0x5865f2)
     .setTitle(job.title)
     .setURL(job.url)
@@ -43,10 +50,90 @@ async function postJob(channel, job) {
         inline: true,
       },
     )
-    .setFooter({ text: `Publicado em: ${job.postedAt || "Recentemente"}` })
+    .setFooter({
+      text: `Vaga ${page + 1} de ${total} • Publicado em: ${job.postedAt || "Recentemente"}`,
+    })
     .setTimestamp(job.postedAt ? new Date(job.postedAt) : null);
-
-  await channel.send({ embeds: [embed] });
 }
 
-module.exports = { postJob };
+/**
+ * Builds a navigation ActionRow with Prev/Next buttons.
+ * @param {number} page - current 0-based page
+ * @param {number} total - total number of jobs
+ * @returns {ActionRowBuilder}
+ */
+function buildNavRow(page, total) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("job_prev")
+      .setLabel("◀ Anterior")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page === 0),
+    new ButtonBuilder()
+      .setCustomId("job_next")
+      .setLabel("Próxima ▶")
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(page === total - 1),
+  );
+}
+
+/**
+ * Sends a paginated embed for a list of jobs.
+ * Users can navigate between jobs using ◀/▶ buttons.
+ * Buttons are disabled after 30 minutes of inactivity.
+ *
+ * @param {import("discord.js").TextChannel} channel
+ * @param {Object[]} jobs
+ */
+async function postJobsPaginated(channel, jobs) {
+  if (!jobs || jobs.length === 0) return;
+
+  let page = 0;
+  const hasMultiple = jobs.length > 1;
+
+  const message = await channel.send({
+    embeds: [buildJobEmbed(jobs[0], 0, jobs.length)],
+    components: hasMultiple ? [buildNavRow(0, jobs.length)] : [],
+  });
+
+  if (!hasMultiple) return;
+
+  // 30-minute idle collector — resets on each interaction
+  const collector = message.createMessageComponentCollector({
+    idle: 30 * 60 * 1000,
+  });
+
+  collector.on("collect", async (interaction) => {
+    await interaction.deferUpdate();
+
+    if (interaction.customId === "job_prev" && page > 0) page--;
+    else if (interaction.customId === "job_next" && page < jobs.length - 1)
+      page++;
+
+    await message
+      .edit({
+        embeds: [buildJobEmbed(jobs[page], page, jobs.length)],
+        components: [buildNavRow(page, jobs.length)],
+      })
+      .catch(console.error);
+  });
+
+  collector.on("end", () => {
+    // Disable both buttons after collector expires
+    const disabledRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("job_prev")
+        .setLabel("◀ Anterior")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("job_next")
+        .setLabel("Próxima ▶")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(true),
+    );
+    message.edit({ components: [disabledRow] }).catch(() => {});
+  });
+}
+
+module.exports = { postJobsPaginated };

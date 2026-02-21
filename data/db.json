@@ -3,10 +3,12 @@
     "998562608514867270": {
       "channelId": "1474104844460621885",
       "filters": {
-        "keywords": ["analista"],
+        "keywords": [
+          "analista"
+        ],
         "location": "São Paulo"
       },
-      "lastRunAt": 1771616818714
+      "lastRunAt": 1771636295353
     }
   },
   "postedJobs": []

@@ -8,7 +8,7 @@ const {
   setLastRun,
   getLastRun,
 } = require("./db");
-const { postJob } = require("./poster");
+const { postJobsPaginated } = require("./poster");
 
 let schedulerTask = null;
 let schedulerRunning = false;
@@ -44,22 +44,27 @@ async function runScrapeForGuild(client, guildId, config) {
     `[Scheduler] ${jobs.length} vagas encontradas para guild ${guildId}.`,
   );
 
-  let posted = 0;
+  // Collect all new (unposted) jobs first, then mark them and post in one paginated embed
+  const newJobs = [];
   for (const job of jobs) {
     if (!job.id || isJobPosted(job.id)) continue;
+    newJobs.push(job);
+  }
+
+  if (newJobs.length > 0) {
     try {
-      await postJob(channel, job);
-      markJobPosted(job.id);
-      posted++;
-      // Small delay to avoid Discord rate limits
-      await new Promise((r) => setTimeout(r, 500));
+      await postJobsPaginated(channel, newJobs);
+      for (const job of newJobs) markJobPosted(job.id);
     } catch (err) {
-      console.error(`[Scheduler] Erro ao postar vaga ${job.id}:`, err.message);
+      console.error(
+        `[Scheduler] Erro ao postar vagas para guild ${guildId}:`,
+        err.message,
+      );
     }
   }
 
   console.log(
-    `[Scheduler] ${posted} novas vagas postadas para guild ${guildId}.`,
+    `[Scheduler] ${newJobs.length} novas vagas postadas para guild ${guildId}.`,
   );
 
   setLastRun(guildId, Date.now());
