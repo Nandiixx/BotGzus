@@ -47,14 +47,14 @@ async function runScrapeForGuild(client, guildId, config) {
   // Collect all new (unposted) jobs first, then mark them and post in one paginated embed
   const newJobs = [];
   for (const job of jobs) {
-    if (!job.id || isJobPosted(job.id)) continue;
+    if (!job.id || isJobPosted(guildId, job.id)) continue;
     newJobs.push(job);
   }
 
   if (newJobs.length > 0) {
     try {
       await postJobsPaginated(channel, newJobs);
-      for (const job of newJobs) markJobPosted(job.id);
+      for (const job of newJobs) markJobPosted(guildId, job.id);
     } catch (err) {
       console.error(
         `[Scheduler] Erro ao postar vagas para guild ${guildId}:`,

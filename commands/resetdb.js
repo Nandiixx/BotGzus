@@ -10,7 +10,7 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 
   async execute(interaction) {
-    const count = resetPostedJobs();
+    const count = resetPostedJobs(interaction.guildId);
 
     await interaction.reply({
       content: `✅ Banco de dados resetado com sucesso!\n**${count} vagas removidas** do histórico.\nAs próximas buscas irão postar todas as vagas encontradas novamente.`,

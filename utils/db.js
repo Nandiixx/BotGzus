@@ -6,7 +6,7 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 
 const defaultDb = {
   guilds: {},
-  postedJobs: [],
+  postedJobs: {}, // per-guild: { [guildId]: string[] }
 };
 
 function load() {
@@ -16,7 +16,16 @@ function load() {
     return JSON.parse(JSON.stringify(defaultDb));
   }
   try {
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+    const db = JSON.parse(fs.readFileSync(DB_PATH, "utf-8"));
+    // Migrate legacy global postedJobs array → per-guild object
+    if (Array.isArray(db.postedJobs)) {
+      db.postedJobs = {};
+      fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    }
+    if (!db.postedJobs || typeof db.postedJobs !== "object") {
+      db.postedJobs = {};
+    }
+    return db;
   } catch {
     return JSON.parse(JSON.stringify(defaultDb));
   }
@@ -95,27 +104,28 @@ function getLastRun(guildId) {
   return (db.guilds[guildId] && db.guilds[guildId].lastRunAt) || 0;
 }
 
-function isJobPosted(jobId) {
+function isJobPosted(guildId, jobId) {
   const db = load();
-  return db.postedJobs.includes(jobId);
+  return (db.postedJobs[guildId] || []).includes(jobId);
 }
 
-function markJobPosted(jobId) {
+function markJobPosted(guildId, jobId) {
   const db = load();
-  if (!db.postedJobs.includes(jobId)) {
-    db.postedJobs.push(jobId);
-    // Keep only last 5000 IDs to avoid bloat
-    if (db.postedJobs.length > 5000) {
-      db.postedJobs = db.postedJobs.slice(-5000);
+  if (!db.postedJobs[guildId]) db.postedJobs[guildId] = [];
+  if (!db.postedJobs[guildId].includes(jobId)) {
+    db.postedJobs[guildId].push(jobId);
+    // Keep only last 5000 IDs per guild to avoid bloat
+    if (db.postedJobs[guildId].length > 5000) {
+      db.postedJobs[guildId] = db.postedJobs[guildId].slice(-5000);
     }
     save(db);
   }
 }
 
-function resetPostedJobs() {
+function resetPostedJobs(guildId) {
   const db = load();
-  const count = db.postedJobs.length;
-  db.postedJobs = [];
+  const count = (db.postedJobs[guildId] || []).length;
+  db.postedJobs[guildId] = [];
   save(db);
   return count;
 }

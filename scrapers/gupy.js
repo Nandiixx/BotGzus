@@ -26,9 +26,11 @@ async function scrape(keywords, location) {
         isPublished: true,
       };
 
-      // A API aceita "city" com o nome da cidade como texto livre
+      // A API aceita "city" com o nome da cidade como texto livre.
+      // Usa apenas o primeiro segmento (antes da vírgula) para evitar
+      // que "São Paulo, Brasil" não retorne nenhum resultado.
       if (location) {
-        params.city = location;
+        params.city = location.split(",")[0].trim();
       }
 
       const { data } = await axios.get(
